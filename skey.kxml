@@ -1,0 +1,131 @@
+<kxml>
+
+	<card name="setProc" type="script">
+		<script name="setsession">
+			SetContVal('f3','value','9B0000')
+			
+			success,seqnum = GetSysVar('__stan');
+			Iseqnum = 0+seqnum;
+			prseqnum = string.format("%06d",Iseqnum);
+			SetContVal('f11','value',prseqnum);
+			Lseqnum =0;
+			Lseqnum = 1 + seqnum;
+			SetSysVar('__stan',''..Lseqnum);
+			
+			success,Sec,Min,Hour,Day,Month,Year,weekday,yearday=GetTime();
+			TDateTime = string.format("%02d%02d%02d%02d%02d",Month,Day,Hour,Min,Sec);
+			TTime = string.format("%02d%02d%02d",Hour,Min,Sec);
+			TDate = string.format("%02d%02d",Month,Day);		
+			SetContVal('f7','value',TDateTime);
+			SetContVal('f12','value',TTime);
+			SetContVal('f13','value',TDate);
+						
+			JumpToCard('CPost1');
+		</script>
+	</card>
+	<card type="process" name="CPost1"  > 
+		<isosend  name="postPur1"  hashdata="false" usessl="true"  onpass="setProc1">
+			  <procmsg>Downloading session key... Please wait</procmsg>           
+			  <failmsg>Transaction could not be processed. Please try again.</failmsg>
+			    
+			  <iso num="0">mti</iso>
+			  <iso num="3">f3</iso>
+			  <iso num="7">f7</iso>
+			  <iso num="11">f11</iso>
+			  <iso num="12">f12</iso>
+			  <iso num="13">f13</iso>
+			  <iso num="41">__tid</iso>
+			
+			</isosend>	
+	</card>	
+	
+	<card name="setProc1" type="script">
+		<script name="setsession">
+			SetContVal('f3','value','9G0000')
+			success,seqnum = GetSysVar('__stan');
+			Iseqnum = 0+seqnum;
+			prseqnum = string.format("%06d",Iseqnum);
+			SetContVal('f11','value',prseqnum);
+			Lseqnum =0;
+			Lseqnum = 1 + seqnum;
+			SetSysVar('__stan',''..Lseqnum);
+			
+			success,Sec,Min,Hour,Day,Month,Year,weekday,yearday=GetTime();
+			TDateTime = string.format("%02d%02d%02d%02d%02d",Month,Day,Hour,Min,Sec);
+			TTime = string.format("%02d%02d%02d",Hour,Min,Sec);
+			TDate = string.format("%02d%02d",Month,Day);		
+			SetContVal('f7','value',TDateTime);
+			SetContVal('f12','value',TTime);
+			SetContVal('f13','value',TDate);
+			
+		
+			success,resp, errormessage=GetContVal('postPur1','39');
+		
+			if resp ~= '00' then
+				ShowMessage('','No session key '..resp,4000);
+				JumpToCard('__main');
+				return;
+			end
+			ShowMessage('','Session key downloaded successfully'..resp,4000);
+			
+			success,theData, errormessage=GetContVal('postPur1','53');
+			
+			
+			file1 = io.open("isomastkey.txt","r");
+			ctmk = file1:read();			
+			file1:close();	
+			
+			theEnc = string.sub(theData,1,32);
+			
+			
+			success,decmsg = DecryptDes2Hex(theEnc,ctmk);
+			
+			
+			SessionAdd('sessionkey',decmsg);
+			file = io.open("isosesskey.txt","w");
+			file:write(decmsg);
+			file:close();
+			success,chkval = CalcChK(decmsg);
+			
+			ShowMessage('','Session key loaded successfully'..resp,4000);
+			
+			JumpToCard('C:getkey.kxml');
+		</script>
+	</card>
+	
+	
+		
+	<card name="bmain" oncancel="__main" next="PaymentCard" >
+
+		<var name="mti">0800</var>
+		<var name="f2"></var>
+		<var name="f3">9A0000</var>
+		<var name="f4"></var>
+		<var name="f7"></var>
+		<var name="f11"></var>
+		<var name="f12"></var>
+		<var name="f13"></var>
+		<var name="f14"></var>
+		<var name="f18"></var>
+		<var name="f22"></var>
+		<var name="f23"></var>
+		<var name="f25"></var>
+		<var name="f26"></var>
+		<var name="f28"></var>
+		<var name="f32"></var>
+		<var name="f35"></var>
+		<var name="f37"></var>		
+		<var name="f41"></var>
+		<var name="f49"></var>
+		<var name="f55"></var>
+		<var name="f62"></var>
+		<var name="f123"></var>
+	
+	
+		<var name="selacctype">default</var>
+		
+	</card>
+	
+
+
+</kxml>
