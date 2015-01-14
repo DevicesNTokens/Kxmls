@@ -1,0 +1,99 @@
+<kxml version="1.0">
+
+	<card name="CcompCard" type="script">
+			<script name="Scomp">
+			
+			
+			success,convalue = GetEnv('__passflag');
+				if convalue == '1' then
+					ShowMessage('','Please wait',1);
+					JumpToCard('DoDbCreate');
+					
+				else
+					SetSysVar('__frsize','0');
+					PutEnv('__passflag', '1');
+					JumpToCard('DoDbCreate');
+				end			
+
+
+			</script>
+	</card>
+	
+    <card name="DoDbCreate" type="script">
+       <script name="dbcreate">
+           GCreateTable('RevTable',512,512,false);
+		   GCreateTable('FRTable',512,512,false);
+		   success,Size = GRowSize('RevTable');
+               
+			 if Size == 0 then
+                   JumpToCard('MainMenu');
+                   return;
+             end
+           JumpToCard('MainMenu');
+           
+                       
+       </script>
+   </card>
+
+	<card name="MainMenu" showsignal="true" showtime="true" >
+		<menu name="mainMenu"  width="124" xpos="1" ypos="1" >
+			<option hotkey="F1" value="C:npur.kxml">PURCHASE</option>
+			<option hotkey="F2" value="C:paybill.kxml">PAYBILLS</option>
+			<option hotkey="F3" value="C:rech.kxml">RECHARGE</option>
+			<option hotkey="F4" value="admin">ADMIN</option>	
+		</menu>		
+	</card>		
+	
+	<card name="admin" type="script" >
+		<script name="SClearPwd" >
+			success, value = GetSysVar('__dadpass');
+			if not success then
+				SetSysVar('__dadpass', '2486');
+			end			
+			SetContVal('TAdmPass', 'value','');
+				
+			JumpToCard('CAdminPass');			
+		</script>
+	</card>
+	
+	
+	<card name="CAdminPass" next="CChkSAdm" timeout="120" oncancel="__main">
+		<textbox name="TAdmPass" xpos="1" ypos="1" width="120" type="pass" title="Admin Pwd:" height="10"></textbox>
+	</card>
+	
+		
+	<card name="CChkSAdm" type="script">
+		<script name="SChkAPass">
+			success, value = GetSysVar('__dadpass');
+			success,tvalue, errormessage=GetContVal('TAdmPass','value');
+			if (tvalue==value) then
+								
+				JumpToCard('MainMenu2');
+			
+			else
+				ShowMessage('','Wrong Admin Password, please enter the correct password',3000);
+				SetContVal('TAdmPass', 'value','');
+				JumpToCard('CAdminPass');
+			end
+		</script>
+	</card>
+	
+	
+	
+	<card name="MainMenu2" oncancel="MainMenu" showsignal="true" showbattery="true" showtime="true" >
+		<menu name="mainMenu3"  width="124" xpos="1" ypos="1" >
+			<option hotkey="F4" value="C:getkey.kxml">GET KEYS</option>
+		</menu>		
+	</card>		
+	
+	
+	
+	
+	
+
+	
+
+	
+</kxml>
+
+
