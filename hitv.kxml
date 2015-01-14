@@ -1,0 +1,150 @@
+<kxml>
+
+
+	<card name="CSelHITV" oncancel="__main" next="CSetHTVPRO" >
+      <selectbox name="SLHTVpro" causenext="true" xpos="20" ypos="10"  width="100"  >
+        <option hotkey="F2" value="CLAS">CLASSIC</option>
+        <option hotkey="F3" value="COR">CORRECT</option>
+        <option hotkey="F4" value="PRE">PREMIUM</option>
+  	</selectbox>
+	</card>
+  
+	<card name="CSetHTVPRO" type="script"  >
+        <script name="Sbiller">
+          success, value, errormessage=GetContVal('SLHTVpro', 'value');
+          if value== 'CLAS' then
+          	SetContVal('billcode','value','121104');
+          	 JumpToCard('CCustNo');
+          end
+          if value== 'COR' then
+         	SetContVal('billcode','value','121105');
+         	 JumpToCard('CCustNo');
+          end
+          if value== 'PRE' then
+	     	SetContVal('billcode','value','121103');
+	     	 JumpToCard('CCustNo');
+          end
+        </script>
+	</card>
+
+	<card name="CCustNo" oncancel="__main" next="CPhone" >
+  		<label name="LConfirm" xpos="5" ypos="10" width="120" height="10">Enter SmartCard No</label>
+     		<textbox name="custnum" type="Alpha" xpos="1" title="" ypos="25" width="120" height="10"></textbox>	
+	</card>
+ 
+ <!--Request for Biller Number. Only requested for if type OTHERS -->     
+	<card name="CBiller" oncancel="__main" next="CCustNo" >
+  		<label name="LConfirm" xpos="5" ypos="10" width="120" height="10">Enter Biller Code</label>
+     		<textbox name="billcode" type="Alpha" xpos="1" title="" ypos="25" width="120" height="10"></textbox>	
+	</card>
+
+	<card name="CPhone" oncancel="__main" next="CAmount" >
+  		<label name="LConfirm" xpos="5" ypos="10" width="120" height="10"> PHONE NUMBER</label>
+     		<textbox name="phonenum" type="Alpha" xpos="1" title="" ypos="25" width="120" height="10"></textbox>	
+	</card>
+
+
+	<card name="CAmount" oncancel="__main" next="PaymentCard" >
+	<textbox name="TAmt" type="amount" xpos="1" title="AMOUNT:" ypos="25" width="120" height="10">0.00</textbox>	
+	<var name="amt" />
+	<var name="eodamt" />
+	<var name="hook">C:billHook.kxml</var>
+	<var name="hook2">C:slbill.kxml</var>
+	</card>
+	
+	<card name="CClearVars" type="script">
+	<script name="SUpdate">
+		success,theAmt, errormessage=GetContVal('TAmt','value');	
+		success,billcode, errormessage=GetContVal('billcode','value');
+		success,custnum, errormessage=GetContVal('custnum','value');
+		success,selacctype, errormessage=GetContVal('selacctype','value');
+		if (theAmt == nil) then
+			theAmt=0;
+		end					
+		SetContVal('amt','value',theAmt*100);	
+		SessionAdd('theAmt', theAmt);
+		SessionAdd('billercode', billcode);			
+		SessionAdd('customerno', custnum);
+		SessionAdd('selacctype', selacctype);
+		SetContVal('eodamt','value',theAmt);			
+		SetContVal('TAmt','value','0.00');	
+	</script>
+	</card>
+
+	<card name="PaymentCard" type="process"  >
+		
+		<eftcard name="purchaseEftCard" collectpin="true" paymode="magemv" amtvar="amt" accttype="selacctype" onfail="__main" onpass="CSelAccType" valdata="4" valmode="lastndig" trxntype="00">
+			<procmsg>Please Insert Card</procmsg>
+		</eftcard>	
+		
+	</card>
+
+	<!--Select Account Type -->
+	<card name="CSelAccType" showbattery="false" oncancel="main" onexit="CClearVars" next="CCHVerify">
+    <selectbox name="selacctype" width="100" xpos="10" ypos="1" interoption="4" causenext="true" >
+      <option hotkey="F1" value="current">CURRENT</option>
+      <option hotkey="F2" value="savings">SAVINGS</option>
+      <option hotkey="F3" value="credit">CREDIT</option>
+      <option hotkey="F4" value="default">DEFAULT</option>
+    </selectbox>
+	</card>
+  
+   
+ 
+	<card name="CCHVerify" type="process" onexit="SData" >
+		<cardholderverification name="CHVerify" eftcard="purchaseEftCard" onpass="CPost" onfail="__main" />
+	</card>
+	  
+	<card name="SData" type="script">
+	<script name="SDataS">
+		success, value, errormessage=GetContVal('purchaseEftCard', 'iccdata');
+		SessionAdd('lasticc', value);
+		success, value, errormessage=GetContVal('purchaseEftCard', 'pindata');
+		SessionAdd('pindata', value);
+		
+		</script>
+	</card>
+  
+	<card type="process" name="CPost" > 
+    <post app="billpayment" name="postPur" eodname="Bills" onfail="CUpdateEOD" usessl="true" server="41.223.145.174" port="443" log="false">
+	      <procmsg>Sending transaction... Please wait</procmsg>           
+	      <failmsg>Transaction could not be processed. Please try again.</failmsg>
+	      <logeod>
+			<log  slot="1" name="#Amt">eodamt</log>
+			<log  slot="2" name="#Card No">__l4dig</log>
+			<log  slot="3" name="#State">#Pend.</log>
+			
+	      </logeod>	      
+		  <var>amt</var>
+		  <var>hook</var>
+		  <var>hook2</var>
+		  <var>selacctype</var>
+		  <var>__track2</var>  
+		  <var>__pindata</var>
+		  <var>__ksn</var>
+		  <var>__ksnd</var>
+		  <var>__chvm</var>
+		  <var>purchaseEftCard</var>
+		  <var>__posdatacode</var> 
+		  <var>__posentrymode</var>
+		  <var>__cardseqnum</var>
+		  <var>__keysetid</var>
+			<group>
+		  	        <group name="billinfo">
+							<var>billcode</var>
+							<var>custnum</var>
+							<var>phonenum</var>
+		  		    </group>
+            </group>
+	    </post>	
+	</card>
+
+	<card type="process" next="__main" name="CUpdateEOD">
+		<upeod name="eodSave" >
+			<update slot="__iresp" >02</update>
+			<update slot="__fresp" >02</update>
+			<update slot="3" >#Fail</update>
+		</upeod>
+	</card>	 
+
+</kxml>
