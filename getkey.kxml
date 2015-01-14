@@ -1,0 +1,20 @@
+<kxml>
+
+	<card name="MainMenu4" showsignal="true" showtime="true" oncancel="__main">
+		<menu name="mainMenu4"  width="124" xpos="1" ypos="1">
+			<option hotkey="F1" value="C:getkey2.kxml">Get All Keys</option>
+			<option hotkey="F2" value="C:mkey.kxml">Master Key</option>
+			<option hotkey="F3" value="C:skey.kxml">Get Session key</option>
+			<option hotkey="F4" value="MainMenu5">More....</option>
+		</menu>		
+	</card>	
+
+	<card name="MainMenu5" showsignal="true" showtime="true" oncancel="__main">
+		<menu name="mainMenu5"  width="124" xpos="1" ypos="1">
+			<option hotkey="F1" value="C:pkey.kxml">Get Pin Key</option>
+			<option hotkey="F2" value="C:param.kxml">Download Param</option>
+			<option hotkey="F3" value="MainMenu4">Go Back</option>
+		</menu>		
+	</card>	
+
+	</kxml>
