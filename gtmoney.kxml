@@ -1,0 +1,250 @@
+<kxml>
+<card name="PrinterCheck" type="script">
+	<script name="SUpdate">
+			success,errormessage = GetPrinterState();
+			if(success == true) then
+				JumpToCard('CSelectPItem');
+			else
+				ShowMessage('','Please Insert Paper',4000);
+				JumpToCard('__main');
+			end
+		</script>		
+</card>
+
+
+  
+  <!--Select Biller Customer Number -->
+	<card name="CSelectPItem" showtime="true" showsignal="true" oncancel="__main" next="CProJUD">
+      <selectbox name="SLJUDpro" causenext="true" xpos="1" ypos="10" width="124"  >
+        <option hotkey="F1" value="GTM">GTBMobile Money</option>					
+	  </selectbox>
+	</card>
+   
+	<card name="CProJUD" type="script"  >
+        <script name="Sbiller">
+          success, value, errormessage=GetContVal('SLJUDpro', 'value');
+          if value== 'GTM' then
+          	SetContVal('billcode','value','46222');
+          	 JumpToCard('PhoneNo');
+          end
+		</script>
+	</card>
+  
+    
+	<card name="PhoneNo" oncancel="__main" next="CCustNo"  >
+		<label name="LConfirm" xpos="20" ypos="10" width="100" height="10">ENTER PHONE NO</label>
+   		<textbox name="phonenum" type="Alpha" xpos="10" title="" ypos="25" width="100" height="10"></textbox>	
+		<var name="billcode" ></var>
+	</card>
+
+
+	<card name="CCustNo" oncancel="__main"  next="CCustNo2">
+		<label name="LConfirm" xpos="10" ypos="10" width="120" height="10">  WALLET NUMBER</label>
+		<textbox name="custnum" type="Alpha" xpos="1" title="" ypos="25" width="120" height="10"></textbox>
+	</card>
+	
+	
+	<card name="CCustNo2" oncancel="__main"    next="CCheckcustnum" >
+			<label name="LConfirm" xpos="10" ypos="10" width="120" height="10">RE-ENTER WALLET NO</label>
+			<textbox name="custnum2" type="Alpha" xpos="1" title="" ypos="25" width="120" height="10"></textbox>
+	</card>
+
+	
+	
+	<card name="CCheckcustnum" type="script">
+		<script name="SUpdate">
+			success,custnum1, errormessage=GetContVal('custnum','value');	
+			success,custnum2, errormessage=GetContVal('custnum2','value');	
+			success,virAmt, errormessage=GetContVal('amt','value');	
+			if (custnum1 == custnum2) then
+			    success=SessionAdd('thecustnum', custnum1);	
+				SessionAdd('theAmt', theAmt);
+				JumpToCard('CAmount');
+				
+			else
+				ShowMessage('','The Wallet No. Entered are not the same.Please Check','4000');
+				JumpToCard('CCustNo');
+			end
+		</script>
+    </card>
+	 
+    
+	
+
+
+	<card name="CAmount" oncancel="__main"  next="CClearVars" >
+		<label name="LConfirm" xpos="45" ypos="10" width="100" height="10">AMOUNT</label>
+		<textbox name="TAmt" type="amount" xpos="10" title="" ypos="25" width="100" height="10">0.00</textbox>	
+		<var name="amt" />
+		<var name="eodamt" />
+		<var name="hook">C:gtmoHook.kxml</var>
+	</card>	
+
+
+  
+
+	<card name="CClearVars" type="script"  next="SSum">
+	
+		<script name="SUpdate">
+		
+			success,theAmt, errormessage=GetContVal('TAmt','value');
+			success,billcode, errormessage=GetContVal('billcode','value');
+			if ((theAmt == '') or (theAmt == '0.00')) then
+			theAmt=0;
+			end
+			theAmt=theAmt+100.00
+			SetContVal('amt','value',theAmt*100);	
+			SessionAdd('amt', theAmt*100);
+			SessionAdd('theAmt', theAmt);	
+			SessionAdd('billercode', billcode);			
+			SetContVal('eodamt','value',theAmt);
+			SetContVal('TAmt','value','0.00');
+				
+			success,theSelAcc, errormessage=GetContVal('selacctype','value');
+			success=SessionAdd('selacctype', theSelAcc);		
+			success,custnum, errormessage=GetContVal('custnum','value');
+			success,phonenum, errormessage=GetContVal('phonenum','value');
+			
+			SessionAdd('customerno', custnum);
+			SessionAdd('phoneno', phonenum);
+			
+		</script>
+	
+	</card>
+   <card name="SSum" type="script"  >
+    <script name="Sscreen">
+      
+      success,custnum, errormessage=GetContVal('custnum','value');
+	  success,phonenum, errormessage=GetContVal('phonenum','value');
+	  success,billcode, errormessage=GetContVal('billcode','value');
+	  success, theNewAmt=SessionGet('theAmt');
+	  
+	  SetContVal('LAmount','value','AMOUNT: '.. theNewAmt);
+      SetContVal('LBillcode','value','BILLCODE:GTBMobile Money');
+      SetContVal('LMtrNo','value','WALLETNO:'..custnum);
+	  SetContVal('LPhoNum','value','PHONENO: '..phonenum);
+	  
+	  JumpToCard('Csummary');
+    </script>
+	
+  </card>
+
+  <card name="Csummary" showbattery="false">
+    <label name="LBillcode" xpos="1" ypos="1" width="120" height="10"  />
+   	<label name="LMtrNo" xpos="1" ypos="12" width="120" height="10" />
+	<label name="LPhoNum" xpos="1" ypos="23" width="120" height="10" />
+	<label name="LAmount" xpos="1" ypos="34" width="120" height="10" />
+	<label name="LItem" xpos="20" ypos="43" width="120" height="10" > Continue?</label>
+    <menu name="mainMenu"  width="70" xpos="15" ypos="53" >
+      <option hotkey="F1" value="PaymentCard">YES</option>
+      <option hotkey="F2" value="__main">NO</option>
+    </menu>
+  </card>
+   
+	<card name="PaymentCard" type="process" >
+		<eftcard name="purchaseEftCard" collectpin="true" paymode="magemv" amtvar="amt" accttype="selacctype" onfail="__main" onpass="CSelAccType" valdata="4" valmode="lastndig" trxntype="00">
+			<procmsg>PLEASE INSERT CARD</procmsg>
+		</eftcard>	
+		
+	</card>
+	
+   <!--Select Account Type -->
+	<card name="CSelAccType" showbattery="false" oncancel="__main" onexit="CClearVars" next="CCHVerify">
+		<selectbox name="selacctype" width="100" xpos="10" ypos="1"  causenext="true" >
+		  <option hotkey="F1" value="current">CURRENT</option>
+		  <option hotkey="F2" value="savings">SAVINGS</option>
+		  <option hotkey="F3" value="credit">CREDIT</option>
+		  <option hotkey="F4" value="default">DEFAULT</option>
+		</selectbox>
+	</card>
+
+
+  
+	<card name="CCHVerify" type="process" >
+		<cardholderverification name="CHVerify" eftcard="purchaseEftCard" onpass="scriptSetTrack" onfail="main" />
+	</card>
+	
+		
+	<card name="scriptSetTrack" type="script">
+		<script name="setsession">
+			success, lasttrack2, errormessage=GetContVal('__track2', 'value');
+			SetSysVar('__lastTrkTwo',lasttrack2);
+			JumpToCard('scriptGetpan');
+		</script>
+	</card>
+	
+	<card name="scriptGetpan" type="script">
+		<script name="setsession">
+			success, pan, errormessage=GetContVal('purchaseEftCard', 'pan');
+			SessionAdd('pan',pan);
+			if string.len(pan) > 10 then
+				first6 = string.sub(pan, 0,6);
+				last4 = string.sub(pan, -4);
+				mymask = first6.."*******"..last4;
+				SessionAdd('themaskpan',mymask);
+			end
+			
+			success, value, errormessage=GetContVal('purchaseEftCard', 'iccdata');
+			SessionAdd('lasticc', value);
+			success, value, errormessage=GetContVal('purchaseEftCard', 'pindata');
+			SessionAdd('pindata', value);
+			success, value, errormessage=GetContVal('purchaseEftCard', 'pinksn');
+			SessionAdd('ksn', value);
+			success, value, errormessage=GetContVal('purchaseEftCard', 'cardHName');
+			value = string.gsub(value, "/", " ");
+			SessionAdd('cardHName', value);
+			success, value, errormessage=GetContVal('__applab', 'value');
+			SessionAdd('sapplab', value);
+			success, value, errormessage=GetContVal('selacctype', 'value');
+			SessionAdd('sacctype', value);
+			JumpToCard('CPost');
+		</script>
+	</card>
+
+  
+  
+	<card type="process" name="CPost" > 
+		<post app="billpayment" name="postBill" eodname="GTB Mobile Money" onfail="CUpdateEOD" usessl="true" server="41.223.145.174" port="443" log="false">
+	      <procmsg>Sending transaction... Please wait</procmsg>           
+	      <failmsg>Transaction could not be processed. Please try again.</failmsg>
+	      <logeod>
+			<log  slot="1" name="#Amt">eodamt</log>
+			<log  slot="2" name="#Card No">__l4dig</log>
+			<log  slot="3" name="#Status">#Pend.</log>
+		  </logeod>	      
+		  <var>amt</var>
+		  <var>hook</var>
+		  <var>hook2</var>
+		  <var>selacctype</var>
+		  <var>__track2</var>  
+		  <var>__pindata</var>
+		  <var>__ksn</var>
+		  <var>__ksnd</var>
+		  <var>__chvm</var>
+		  <var>purchaseEftCard</var>
+		  <var>__posdatacode</var> 
+		  <var>__posentrymode</var>
+		  <var>__cardseqnum</var>
+		  <var>__keysetid</var>		  
+		    <group>
+		  	            <group name="billinfo">
+							<var>billcode</var>
+							<var>custnum</var>
+							<var>phonenum</var>
+						</group>
+            </group>
+	   
+	    </post>	
+	</card>
+
+	
+	<card type="process" next="__main" name="CUpdateEOD">
+		<upeod name="eodSave" >
+			<update slot="__iresp" >02</update>
+			<update slot="__fresp" >02</update>
+			<update slot="3" >#Fail</update>
+		</upeod>
+	</card>	  
+
+
+</kxml>
