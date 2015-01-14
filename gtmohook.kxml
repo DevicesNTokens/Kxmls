@@ -1,0 +1,187 @@
+<kxml>
+
+	<card name="CDecide" type="script">                                                                                                                         
+		<script name="SDecide">
+			success, theRespCode=SessionGet('rcode');			
+			success, theRespMsg=SessionGet('__myrmsg');			
+			if theRespCode=='00' then
+				JumpToCard('CDisplayResultPass');
+			else
+				SetContVal('LRMsg','value', theRespMsg);
+				JumpToCard('CDisplayResultFail');
+			end
+		</script>
+	</card>	
+			
+	
+	<card name="CDisplayResultFail" oncancel="CPrintFReceipt" timeout="02" ontimeout="CPrintFReceipt" next="CPrintFReceipt" >
+		<label name="LRMsg" xpos="1" ypos="1" width="120" height="60"/>		
+	</card>
+
+
+	<card name="CPrintFReceipt" next="CUpEODFail" type="process">
+		<printprocess name="PrPrintRct2" pausefortear="true">
+		<procmsg></procmsg>
+		<failmsg>Printing Failed</failmsg>
+		<receipt >
+			~fP1;~jL;~d"  "~~
+			~fP2;~jC;~d" "__merchantloc~~
+			~fP1;~jC;~d".........................................."~~
+			~fP2;~jL;~d" TERMINAL ID:"__tid~~
+			~fP2;~jL;~d" DATE:"__date~~
+			~fP2;~jL;~d" TIME:"__time~~
+			~fP2;~jL;~d" STAN:"%stan~~
+			~fP2;~jL;~d" AUTH CODE:"%auth~~
+			~fP1;~jL;~d"  CARDNO:"%themaskpan~~
+			~fP1;~jL;~d"  CARD TYPE:"%sapplab~~
+			~fP1;~jL;~d"  NAME:"%cardHName~~
+			~fP1;~jC;~d"...............PURCHASE..................."~~
+			~fP2;~jC;~d" TRANSACTION FAILED "~~
+			~fP1;~jL;~d"  "~~
+			~fP1;~jC;~d"Response:"%__myrmsg~~
+			~fP1;~jC;~d".........................................."~~
+			~fP3;~jL;~d"       AMOUNT"~~
+			~fP1;~jL;~d""~~
+			~fP3;~jL;~d"       N"%theAmt~~
+			~fP1;~jC;~d".........................................."~~
+			~fP1;~jL;~d"  "~~
+			~fP1;~jL;~d"  "~~
+			~fP1;~jC;~d".........................................."~~
+			~fP1;~jL;~d"              THANK YOU"~~	
+			~fP1;~jL;~d"         POWERED BY INTERSWITCH"~~		
+			~fP1;~jL;~d"  "~~
+			~fP1;~jL;~d"  "~~
+			~fP1;~jL;~d"  "~~
+			~fP1;~jL;~d"  "~~
+			~fP1;~jL;~d"  "~~
+		</receipt>		  
+		</printprocess>   
+	</card>	
+
+	
+	<card name="CDisplayResultPass" showbattery="false" next="CPrintReceipt" timeout="02" ontimeout="CPrintReceipt">
+		<label name="LCongrats" xpos="1" ypos="20" width="120" height="30">Transaction Approved</label>	
+    </card>
+	
+	
+
+	
+	<card type="process" next="__main" name="CUpEODFail" onexit="CClearSession">
+	<upeod name="eodSaveF">
+		<update slot="__iresp" >01</update>
+		<update slot="__fresp" >01</update>
+		<update slot="3" >#Fail</update>
+	</upeod>
+	</card>	
+	
+	
+	<card name="CPrintReceipt" next="CMerchantReceipt" type="process">
+      <printprocess name="PrPrintRct" pausefortear="true">
+      <procmsg>Printing Receipts</procmsg>
+      <failmsg>Printing Failed</failmsg>
+	   <passmsg>Printing Successful</passmsg>
+		<receipt >
+		    ~fP1;~jC;~d".............CUSTOMER COPY................"~~
+			~fP2;~jC;~d""__merchantloc~~
+			~fP1;~jC;~d".........................................."~~
+			~fP2;~jL;~d" TERMINAL ID:"__tid~~
+			~fP2;~jL;~d" DATE:"__date~~
+			~fP2;~jL;~d" TIME:"__time~~
+			~fP2;~jL;~d" STAN:"%stan~~
+			~fP2;~jL;~d" AUTH CODE:"%auth~~
+			~fP1;~jL;~d"  CARDNO:"%themaskpan~~
+			~fP1;~jL;~d"  CARD TYPE:"%sapplab~~
+			~fP1;~jL;~d"  NAME:"%cardHName~~
+			~fP1;~jC;~d"...............PURCHASE..................."~~
+			~fP1;~jL;~d"  CUSTOMER NAME:"%CustName~~
+			~fP1;~jL;~d"  WALLET NO:"%customerno~~
+			~fP1;~jL;~d"  PHONE NO: "%phoneno~~
+			~fP1;~jC;~d".........................................."~~
+			~fP3;~jC;~d"      APPROVED                 "~~
+			~fP1;~jC;~d".........................................."~~
+			~fP3;~jL;~d"       AMOUNT"~~
+			~fP1;~jL;~d""~~
+			~fP3;~jL;~d"       N"%theAmt~~
+			~fP1;~jC;~d".........................................."~~
+			~fP2;~jC;~d"PLEASE RETAIN RECEIPT"~~	
+			~fP2;~jC;~d"THANK YOU"~~	
+			~fP2;~jC;~d"POWERED BY INTERSWITCH"~~	
+			~fP1;~jC;~d".........................................."~~
+			~fP1;~jL;~d"  "~~
+			~fP1;~jL;~d"  "~~
+			~fP1;~jC;~d".........................................."~~
+			~fP1;~jL;~d"  "~~
+			~fP1;~jL;~d"  "~~
+			~fP1;~jL;~d"  "~~
+		</receipt>		  
+      </printprocess>    
+	</card>  
+	
+	<card name="CMerchantReceipt" showbattery="false" next="CPrintReceipt2" timeout="02" ontimeout="CPrintReceipt2">
+		<label name="LMesage" xpos="1" ypos="30" width="120" height="10">Press OK to Print  </label>
+		<label name="LMesage" xpos="1" ypos="41" width="120" height="10">  Merchant Copy</label>
+	</card>
+	  
+	<card name="CPrintReceipt2" type="process"	next="CUpEODPass" >
+		<printprocess name="PrPrintRct" pausefortear="false">
+		<procmsg>Printing Receipts</procmsg>
+		<failmsg>Printing Failed</failmsg>	
+		<passmsg>Printing Successful</passmsg>
+		<receipt>
+			~fP1;~jL;~d"  "~~
+			~fP1;~jL;~d"  "~~
+			~fP1;~jC;~d"..............MERCHANT COPY..............."~~
+			~fP2;~jC;~d""__merchantloc~~
+			~fP1;~jC;~d".........................................."~~
+			~fP2;~jL;~d" TERMINAL ID:"__tid~~
+			~fP2;~jL;~d" DATE:"__date~~
+			~fP2;~jL;~d" TIME:"__time~~
+			~fP2;~jL;~d" STAN:"%stan~~
+			~fP2;~jL;~d" AUTH CODE:"%auth~~
+			~fP1;~jL;~d"  CARDNO:"%themaskpan~~
+			~fP1;~jL;~d"  CARD TYPE:"%sapplab~~
+			~fP1;~jL;~d"  NAME:"%cardHName~~
+			~fP1;~jC;~d"...............PURCHASE..................."~~
+			~fP1;~jL;~d"  CUSTOMER NAME:"%CustName~~
+			~fP1;~jL;~d"  WALLET NO:"%customerno~~
+			~fP1;~jL;~d"  PHONE NO: "%phoneno~~
+			~fP1;~jC;~d".........................................."~~
+			~fP3;~jC;~d"      APPROVED                 "~~
+			~fP1;~jC;~d".........................................."~~
+			~fP3;~jL;~d"       AMOUNT"~~
+			~fP1;~jL;~d""~~
+			~fP3;~jL;~d"       N"%theAmt~~
+			~fP1;~jC;~d".........................................."~~
+			~fP2;~jC;~d"PLEASE RETAIN RECEIPT"~~	
+			~fP2;~jC;~d"THANK YOU"~~	
+			~fP2;~jC;~d"POWERED BY INTERSWITCH"~~	
+			~fP1;~jC;~d".........................................."~~
+			~fP1;~jL;~d"  "~~
+			~fP1;~jL;~d"  "~~
+			~fP1;~jC;~d".........................................."~~
+			~fP1;~jL;~d"  "~~
+			~fP1;~jL;~d"  "~~
+			~fP1;~jL;~d"  "~~
+			~fP1;~jL;~d"  "~~
+			~fP1;~jL;~d"  "~~
+		</receipt>
+        </printprocess>     
+
+	</card>
+	
+	
+	<card type="process" next="__main"  name="CUpEODPass" onexit="CClearSession">
+	<upeod name="eodSaveP">
+		<update slot="__iresp" >00</update>
+		<update slot="__fresp" >00</update>
+		<update slot="3" >#Pass</update>
+	</upeod>
+	</card>	
+
+	<card name="CClearSession" type="script" >                                                                                                                         
+		<script name="SDecide">
+				success=SessionClear();
+		</script>
+	</card>	
+	
+</kxml>
