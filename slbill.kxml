@@ -1,0 +1,119 @@
+<kxml>
+
+	<card name="CDecide" type="script">                                                                                                                         
+		<script name="SDecide">
+			success, theRespCode=SessionGet('__myresp');						
+			success, theUUID=SessionGet('inquiryRef');
+			SetContVal('uuid','value', theUUID);
+			success, theItem=SessionGet('PItem');
+			SetContVal('LItem','value','Item:   '.. theItem);
+			success, theNewAmt=SessionGet('theAmt');
+			SetContVal('LAmount','value','Amount: '.. theNewAmt);
+			SetContVal('amt','value',theNewAmt);
+			success, thebillercode=SessionGet('billercode');
+			SetContVal('billcode','value',thebillercode);			
+			success, thecustomerno=SessionGet('customerno');
+			SetContVal('custnum','value',thecustomerno);			
+			success, theAccType=SessionGet('selacctype');
+			SetContVal('selacctype','value', theAccType);
+			if theRespCode=='00' then
+				JumpToCard('Csummary');
+			else
+				success, theRespMsg=SessionGet('__myrmsg');			
+				SetContVal('LRMsg','value', theRespMsg);
+				JumpToCard('CDisplayResultFail');
+			end
+		</script>
+	</card>	
+		
+	<card name="Csummary" >
+	<label name="LAmount" xpos="1" ypos="1" width="120" height="10"/>
+	<label name="LItem" xpos="1" ypos="12" width="120" height="10" />
+	<label name="lmsg" xpos="18" ypos="24" width="120" height="10">Pay full amt?</label>
+	<menu name="mainMenu"  width="80" xpos="24" ypos="36" interoption="2">
+      <option hotkey="F3" value="PaymentCard">Yes</option>
+      <option hotkey="F4" value="CNo">No</option>
+    </menu>
+  </card>
+
+
+	<card name="CNo" oncancel="__main" onexit="CClearVars" next="PaymentCard" >
+	<textbox name="theAmt" type="amount" xpos="1" title="Amount:" ypos="15" width="120" height="10">0.00</textbox>	
+	<var name="amt" />
+	<var name="billcode" />
+	<var name="eodamt" />
+	<var name="uuid" />
+	<var name="selacctype"/>
+	<var name="hook">C:billHook.kxml</var>
+	</card>
+	
+	
+	<card name="CClearVars" type="script">
+	<script name="SUpdate">
+		success,theAmt, errormessage=GetContVal('theAmt','value');	
+		if (theAmt == nil) then
+			theAmt=0;
+		end					
+		SetContVal('amt','value',theAmt*100);	
+		SetContVal('eodamt','value',theAmt);
+		SessionAdd('theAmt', theAmt);
+		SetContVal('theAmt','value','0.00');	
+		</script>
+</card>
+
+<card name="PaymentCard" type="process" >
+	<eftcard name="purchaseEftCard" collectpin="true" paymode="magemv"  amtvar="amt" accttype="selacctype" onfail="__main" onpass="CYes" valdata="4" valmode="none" contpoll="true" trxntype="00">
+	<label name="Lmsg" xpos="1" ypos="20" width="120" height="30">Processing, Please wait</label>
+		<magstriperules >
+			<rule pan="*" action="Allow" chvm="OnlinePin" />
+		</magstriperules> 
+	</eftcard>	
+</card>
+
+<!--
+Not required
+<card name="CCHVerify" type="process" >
+	<cardholderverification name="CHVerify" eftcard="purchaseEftCard" onpass="CYes" onfail="__main" />
+</card>-->
+  
+<card name="CDisplayResultFail" oncancel="__main" next="__main">
+		<label name="LRMsg" xpos="1" ypos="1" width="120" height="60"/>		
+	</card>
+
+	<card type="process" onentry="CSetHkAsCmp" name="CYes"  > 
+	    <post app="billcomp" name="postPur" onfail="CUpEODFail" >
+	      <procmsg>Sending transaction... Please wait</procmsg>           
+	      <failmsg>Transaction could not be completed</failmsg>		  
+		  <var>hook</var>
+		  <var>pan</var>
+		  <var>__track2</var>
+		  <var>amt</var>
+		  <var>selacctype</var>
+		  <var>%lasticc</var>
+		  <var>%pindata</var>
+		  <var>__ksn</var>
+		  <var>__ksnd</var>
+		  <var>__chvm</var>
+		  <var>__posdatacode</var> 
+		  <var>__posentrymode</var>
+		  <var>__cardseqnum</var>
+		  <var>__keysetid</var>
+		  <group>
+	           <group name="billinfo">
+					<var>uuid</var>
+					<var>billcode</var>
+				</group>
+          </group>		 
+	    </post>	
+	</card>
+
+	<card type="process" next="__main" name="CUpEODFail">
+		<upeod name="eodSave" >
+			<update slot="__iresp" >01</update>
+			<update slot="__fresp" >01</update>
+			<update slot="3" >#Fail</update>
+		</upeod>
+	</card>	  
+
+
+</kxml>
