@@ -1,0 +1,247 @@
+<kxml>
+<card name="popTrans" type="script">
+		<script name="setsession">
+			
+			success,Size = GRowSize('RevTable');
+				
+			if Size == 0 then
+				
+				JumpToCard('__main');
+				return;
+			end
+				
+				
+			num =0;
+			count =0;
+			if Size~=0 then
+						count =0;
+						result = { };
+						for i=0,Size-1 do				
+							
+							num = ''..i;
+							j = Size-1-i;
+							success,data = GGetRow('RevTable',j);
+						
+							result = { };
+							from = 1;
+							delimiter=":";
+							delim_from, delim_to = string.find( data, delimiter, from );
+							while delim_from do
+								table.insert( result, string.sub( data, from , delim_from-1 ) );
+								from = delim_to + 1;
+								delim_from, delim_to = string.find( data, delimiter, from );
+							end
+							table.insert( result, string.sub( data, from ) );
+				end			
+			end			
+							
+			origmti = result[1];
+			OrigDateTime = result[2];
+			track2 = result[3];
+			proccode = result[4];
+			amt = result[5];
+			Origseqnum = result[6];
+			cardseq =  result[7];
+			pentry = result[8];
+			posdatacode = result[9];
+			
+			
+			SetContVal('f22','value',pentry)	
+			SetContVal('f123','value',posdatacode)	
+					
+			SetSysVar('__lastrevtime',''..OrigDateTime);
+			
+			isFind = string.find(track2,"D");			
+			if isFind == null then
+				isFind = string.find(track2,"=");
+			end
+			pan = string.sub(track2,0,isFind-1);
+			expdate = string.sub(track2,isFind+1,isFind+4);
+			
+			src = string.sub(track2,isFind+5,isFind+7);
+			
+		
+			SetContVal('mti','value','0420')
+			SetContVal('f2','value',pan)
+			SetContVal('f3','value',proccode)
+			SetContVal('f4','value',amt)		
+			
+			
+			SetContVal('f14','value',expdate)	
+			SetContVal('f23','value',cardseq)	
+			SetContVal('f25','value','00')
+			SetContVal('f26','value','06')
+			SetContVal('f28','value','C00000000')
+			SetContVal('f35','value',track2)
+			SetContVal('f40','value',src)
+		
+		
+			success,seqnum = GetSysVar('__stan');
+			Iseqnum = 0+seqnum;
+			prseqnum = string.format("%06d",Iseqnum);
+			SetContVal('f11','value',prseqnum);
+			
+			refNum =  string.format("%012d",Iseqnum);
+			SetContVal('f37','value',refNum)
+			
+			Lseqnum =0;
+			Lseqnum = 1 + seqnum;
+			SetSysVar('__stan',''..Lseqnum)
+
+			success,Sec,Min,Hour,Day,Month,Year,weekday,yearday=GetTime();
+			TDateTime = string.format("%02d%02d%02d%02d%02d",Month,Day,Hour,Min,Sec);
+			TTime = string.format("%02d%02d%02d",Hour,Min,Sec);
+			TDate = string.format("%02d%02d",Month,Day);		
+			SetContVal('f7','value',TDateTime);
+			SetContVal('f12','value',TTime);
+			SetContVal('f13','value',TDate);
+			
+			success,pinblock, errormessage=GetContVal('__pindata','value');
+			
+			formatedOrigStan =  string.format("%06d",Origseqnum);
+			
+			
+			
+			origdataElement = origmti..formatedOrigStan..OrigDateTime..'0000011112900000111129';
+			SetContVal('f90','value',origdataElement);
+		
+			
+			settleamt = '000000000000';
+			transfee = 'C00000000';
+			settlefee = 'C00000000';
+			Origamtelement = amt..settleamt..transfee..settlefee
+			SetContVal('f95','value',Origamtelement);
+			JumpToCard('CPost4');
+		
+		</script>
+	</card>
+	
+	
+	
+		<card type="process" name="CPost4"  > 
+		<isosend  name="postPur4" usessl="true" onpass='setProc5' onrecverror="__main"  ontimeout="__main" timeout="60">
+			  <procmsg>Sending reversal... Please wait</procmsg>           
+			  <failmsg>Transaction could not be processed. Please try again.</failmsg>
+			    
+			  <iso num="0">mti</iso>
+			   <iso num="2">f2</iso>
+			  <iso num="3">f3</iso>
+			   <iso num="4">f4</iso>
+			  <iso num="7">f7</iso>
+			  <iso num="11">f11</iso>
+			  <iso num="12">f12</iso>
+			  <iso num="13">f13</iso>
+			  <iso num="14">f14</iso>
+			   <iso num="18">__mtype</iso>
+			  <iso num="22">f22</iso>
+			   <iso num="23">f23</iso>
+			  <iso num="25">f25</iso>
+			  <iso num="26">f26</iso>
+			  <iso num="28">f28</iso>
+			  <iso num="35">f35</iso>
+			  <iso num="37">f37</iso>
+			   <iso num="40">f40</iso>
+			  <iso num="41">__tid</iso>
+			  <iso num="42">__mid</iso>
+			  <iso num="43">__merchantloc</iso>
+			  <iso num="49">__currcode</iso>
+			   <iso num="90">f90</iso>
+			 <iso num="95">f95</iso>
+			  <iso num="123">f123</iso>
+			 
+	
+			
+			</isosend>	
+	</card>
+
+	
+	
+		<card name="setProc5" type="script">
+		<script name="setsession1">
+			
+			success,theData, errormessage=GetContVal('postPur4','0');
+		
+			
+			success,theData, errormessage=GetContVal('postPur4','3');
+		
+			
+			success,theData, errormessage=GetContVal('postPur4','7');
+		
+			
+			success,theData, errormessage=GetContVal('postPur4','11');
+		
+			
+			success,resp, errormessage=GetContVal('postPur4','39');
+			
+			if resp == '25'   then
+					success,transtime = GetSysVar('__lastrevtime');
+					success,Size = GRowSize('RevTable');
+					GDeleteRow('RevTable',Size-1);						
+					ShowMessage('','Reversal successful',4000);
+					JumpToCard('__main');
+					return
+			end
+			
+			
+			if resp == '00'   then
+					success,transtime = GetSysVar('__lastrevtime');
+					success,Size = GRowSize('RevTable');
+					GDeleteRow('RevTable',Size-1);						
+					ShowMessage('','Reversal successful',4000);
+					JumpToCard('__main');
+					return
+			end
+			
+			
+			
+			success,Size = GRowSize('RevTable');
+				if Size ~= 0 then
+				GDeleteRow('RevTable',Size-1);	
+			end
+			success,message = MessageIso(resp);			
+		
+			ShowMessage('',message,4000);
+			JumpToCard('__main');
+				
+			
+		
+			
+		</script>
+	</card>
+	
+	
+			
+	<card name="bmain" onexit="CClearVars" oncancel="__main" next="PaymentCard" >
+
+		<var name="mti">0800</var>
+		<var name="f2"></var>
+		<var name="f3">9A0000</var>
+		<var name="f4"></var>
+		<var name="f7"></var>
+		<var name="f11"></var>
+		<var name="f12"></var>
+		<var name="f13"></var>
+		<var name="f14"></var>
+		<var name="f18"></var>
+		<var name="f22"></var>
+		<var name="f23"></var>
+		<var name="f25"></var>
+		<var name="f26"></var>
+		<var name="f28"></var>
+		<var name="f32"></var>
+		<var name="f35"></var>
+		<var name="f37"></var>		
+		<var name="f40"></var>		
+		<var name="f41"></var>
+		<var name="f49"></var>
+		<var name="f55"></var>
+		<var name="f62"></var>
+		<var name="f90"></var>
+		<var name="f95"></var>
+		<var name="f123"></var>
+		
+		
+	</card>
+	  
+	  
+</kxml>
