@@ -1,0 +1,145 @@
+<kxml>
+
+<card name="CDecide" type="script">                                                                                                                         
+	<script name="SDecide">
+		success, theRespCode=SessionGet('__myresp');			
+		success, theRespMsg=SessionGet('__myrmsg');			
+		if theRespCode=='00' then
+			JumpToCard('CDisplayResultPass');
+		    success, theSurcharge=SessionGet('surcharge');			
+			SetContVal('scharge','value',theSurcharge/100);
+			success, thecustomerno=SessionGet('customerno');
+			SetContVal('custnum','value',thecustomerno);			
+		else
+			SetContVal('LRMsg','value', theRespMsg);
+			JumpToCard('CDisplayResultFail');
+		end
+	</script>
+</card>	
+
+<card name="CDisplayResultFail" oncancel="CUpEODFail" timeout="02" ontimeout="CUpEODFail" next="CUpEODFail">
+	<label name="LRMsg" xpos="1" ypos="1" width="120" height="60"/>		
+</card>
+
+
+<card name="CDisplayResultPass" showbattery="false" next="CPrintReceipt" timeout="02" ontimeout="CPrintReceipt">
+	<label name="LCongrats" xpos="1" ypos="20" width="120" height="30">Transaction Approved</label>	
+	<var name = "scharge"/>
+</card>
+
+<card type="process" next="__main" name="CUpEODFail" onexit="CClearSession">
+	<upeod name="eodSaveF">
+		<update slot="__iresp" >01</update>
+		<update slot="__fresp" >01</update>
+		<update slot="3" >#Fail</update>
+	</upeod>
+</card>	
+
+<card name="CPrintReceipt" next="CMerchantReceipt" type="process">
+      <printprocess name="PrPrintRct" pausefortear="true">
+      <procmsg>Printing Receipts</procmsg>
+      <failmsg>Printing Failed</failmsg>
+      <receipt >
+		~fP1;~jL;~d"  "~~
+		~fP1;~jL;~d""~~
+	    ~fP1;~jL;~d"************* CUSTOMER COPY **************"~~
+		~fP1;~jC;~d" "__merchantloc~~
+		~fP1;~jL;~d"******************************************"~~
+		~fP1;~jL;~d"TERMINAL ID:   "__tid~~
+		~fP1;~jL;~d"DATE:          "__date~~
+		~fP1;~jL;~d"TIME:          "__time~~
+		~fP1;~jL;~d"CARD NO:   ****"__l4dig~~
+		~fP1;~jL;~d"CARD TYPE:"%sapplab~~
+		~fP1;~jL;~d"CARDHOLDER NAME:"%cardHName~~
+		~fP1;~jL;~d"...............BILL PAYMENT..............."~~
+		~fP1;~jL;~d""%Biller~~
+		~fP1;~jL;~d""%PItem~~
+		~fP1;~jL;~d".........................................."~~
+		~fP1;~jL;~d"CUSTOMER NAME:"%CustName~~
+		~fP1;~jL;~d"CUSTOMER NO:"%customerno~~
+		~fP1;~jL;~d"SURCHARGE:"scharge~~
+		~fP1;~jL;~d"STAN:"%__mystan~~
+		~fP1;~jL;~d"TRANS REF:"%TransRef~~
+		~fP1;~jL;~d".........................................."~~
+		~fP3;~jL;~d"       AMOUNT"~~
+		~fP1;~jL;~d""~~
+		~fP3;~jL;~d"      N"%theAmt~~
+		~fP1;~jL;~d"******************************************"~~
+		~fP1;~jL;~d"          PLEASE RETAIN RECEIPT"~~	
+		~fP1;~jL;~d"               THANK YOU"~~	
+		~fP1;~jL;~d"          POWERED BY INTERSWITCH "~~	
+		~fP1;~jL;~d"   QUICKTELLER - Powered by Interswitch"~~		
+		~fP1;~jL;~d"        WEBSITE:www.quickteller.com"~~	
+		~fP1;~jL;~d""~~
+		~fP1;~jL;~d""~~
+		~fP1;~jL;~d""~~
+		~fP1;~jL;~d""~~
+	  </receipt>		  
+    </printprocess>    
+
+</card>
+
+<card name="CMerchantReceipt" showbattery="false" next="CPrintReceipt2" timeout="04" ontimeout="CPrintReceipt2">
+	<label name="LMesage" xpos="1" ypos="30" width="120" height="10">Press OK to Print  </label>
+	<label name="LMesage" xpos="1" ypos="41" width="120" height="10">  Merchant Copy</label>
+
+</card>
+
+<card name="CPrintReceipt2" type="process"	next="CUpEODPass" >
+	<printprocess name="PrPrintRct" pausefortear="false">
+      <procmsg>Printing Receipts</procmsg>
+      <failmsg>Printing Failed</failmsg>	      
+      <receipt>
+		~fP1;~jL;~d"  "~~
+		~fP1;~jL;~d"  "~~
+		~fP1;~jL;~d"************* MERCHANT COPY **************"~~
+		~fP1;~jC;~d" "__merchantloc~~
+		~fP1;~jL;~d"******************************************"~~
+		~fP1;~jL;~d"TERMINAL ID:   "__tid~~
+		~fP1;~jL;~d"DATE:          "__date~~
+		~fP1;~jL;~d"TIME:          "__time~~
+		~fP1;~jL;~d"CARD NO:   ****"__l4dig~~
+		~fP1;~jL;~d"CARD TYPE:"%sapplab~~
+		~fP1;~jL;~d"CARDHOLDER NAME:"%cardHName~~
+		~fP1;~jL;~d"...............BILL PAYMENT..............."~~
+		~fP1;~jL;~d""%Biller~~
+		~fP1;~jL;~d""%PItem~~
+		~fP1;~jL;~d".........................................."~~
+		~fP1;~jL;~d"CUSTOMER NAME:"%CustName~~
+		~fP1;~jL;~d"CUSTOMER NO:"%customerno~~
+		~fP1;~jL;~d"SURCHARGE:"scharge~~
+		~fP1;~jL;~d"STAN:"%__mystan~~
+		~fP1;~jL;~d"TRANS REF:"%TransRef~~
+		~fP1;~jL;~d".........................................."~~
+		~fP3;~jL;~d"       AMOUNT"~~
+		~fP1;~jL;~d""~~
+		~fP3;~jL;~d"      N"%theAmt~~
+		~fP1;~jL;~d"******************************************"~~
+		~fP1;~jL;~d"          PLEASE RETAIN RECEIPT"~~	
+		~fP1;~jL;~d"               THANK YOU"~~	
+		~fP1;~jL;~d"          POWERED BY INTERSWITCH "~~	
+		~fP1;~jL;~d"   QUICKTELLER - Powered by Interswitch"~~		
+		~fP1;~jL;~d"        WEBSITE:www.quickteller.com"~~	
+		~fP1;~jL;~d""~~
+		~fP1;~jL;~d""~~
+		~fP1;~jL;~d""~~
+		~fP1;~jL;~d""~~
+      </receipt>
+    </printprocess>     
+
+</card>
+
+<card type="process" next="__main"  name="CUpEODPass" onexit="CClearSession">
+	<upeod name="eodSaveP">
+		<update slot="__iresp" >00</update>
+		<update slot="__fresp" >00</update>
+		<update slot="3" >#Pass</update>
+	</upeod>
+</card>	
+
+<card name="CClearSession" type="script" >                                                                                                                         
+		<script name="SDecide">
+				success=SessionClear();
+		</script>
+	</card>	
+</kxml>
