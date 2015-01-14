@@ -1,0 +1,599 @@
+<kxml>	
+		<card name="CAmt" onexit="CClearVars" oncancel="__main" next="PaymentCard" >
+			<textbox name="TAmt" type="amount" xpos="1" title="AMOUNT:" ypos="15" width="120" height="10">0.00</textbox>	
+			<var name="amt" />
+			<var name="eodamt" />
+			<var name="myAmt" />
+			<var name="myStan" />
+			<var name="myAuthID" />
+		</card>
+	
+	
+		<card name="CClearVars" type="script">
+			<script name="SUpdate">
+				success,theAmt, errormessage=GetContVal('TAmt','value');	
+				if (theAmt == nil) then
+					theAmt=0;
+				end			
+				
+				SetContVal('amt','value',theAmt*100);	
+				SessionAdd('theAmt', theAmt);				
+				SetContVal('eodamt','value',theAmt);	
+				SetContVal('myAmt','value',theAmt);	
+				SetContVal('TAmt','value','0.00');	
+			</script>
+		</card>
+	
+		<card name="PaymentCard" type="process" >
+			<eftcard name="purchaseEftCard" collectpin="true" pinmode="tdes" paymode="magemv" amtvar="amt" accttype="selacctype" onfail="__main" onpass="CSelAccType" valdata="4" valmode="none" trxntype="00">
+			<procmsg>PLEASE INSERT CARD</procmsg>
+			<magstriperules >
+					<rule pan="51" action="Allow" chvm="Signature" />
+					<rule pan="52" action="Allow" chvm="Signature" />
+					<rule pan="53" action="Allow" chvm="Signature" />
+					<rule pan="54" action="Allow" chvm="Signature" />
+					<rule pan="55" action="Allow" chvm="Signature" />
+					<rule pan="62" action="Allow" chvm="OnlinePin" />
+					<rule pan="4" action="Allow" chvm="OnlinePin" />
+					<rule pan="*" action="Deny" denymsg="Card not allowed" />
+			</magstriperules> 
+			</eftcard>
+							
+		</card>
+	
+		<card name="CSelAccType" showbattery="false" oncancel="CAmt" next="CCHVerify">
+			<selectbox name="selacctype" width="100" xpos="10" ypos="1"  causenext="true" >
+				<option hotkey="F1" value="current">CURRENT</option>
+				<option hotkey="F2" value="savings">SAVINGS</option>
+				<option hotkey="F3" value="credit">CREDIT</option>
+				<option hotkey="F4" value="default">DEFAULT</option>
+			</selectbox>
+		</card>
+	
+	
+		<card name="CCHVerify" type="process" >
+			<cardholderverification name="CHVerify" eftcard="purchaseEftCard" onpass="CGetdata" onfail="__main" />
+		</card>
+
+
+		<card name="CGetdata" type="script">
+			<script name="SUpdate">
+				success, pan, errormessage=GetContVal('purchaseEftCard', 'pan');
+				SessionAdd('pan',pan);
+					if string.len(pan) > 10 then
+						first6 = string.sub(pan, 0,6);
+						last4 = string.sub(pan, -4);
+						mymask = first6.."*******"..last4;
+						SessionAdd('themaskpan',mymask);
+						SessionAdd('last4',last4);
+					end
+				success, value, errormessage=GetContVal('purchaseEftCard', 'cardHName');
+				value = string.gsub(value, "/", " ");
+				SessionAdd('cardHName', value);
+				success, value, errormessage=GetContVal('__applab', 'value');
+				SessionAdd('sapplab', value);
+			
+				iccdata="";
+				temp ="";
+				
+			
+				success,cryptogram, errormessage=GetContVal('purchaseEftCard','LiccCrytogram');	
+				temp = string.format("9F26%02x%s",string.len(cryptogram)/2,cryptogram);
+				iccdata = iccdata..temp;
+				
+
+				success,ciData, errormessage=GetContVal('purchaseEftCard','LiccCid');			
+				temp= string.format("9F27%02x%s",string.len(ciData)/2,ciData);
+				iccdata = iccdata..temp;
+				
+				
+
+				success,IssuerApplicationData, errormessage=GetContVal('purchaseEftCard','LiccIad');
+				temp= string.format("9F10%02x%s",string.len(IssuerApplicationData)/2,IssuerApplicationData);
+				iccdata = iccdata..temp;
+
+				
+
+				success,UnpredictableNumber, errormessage=GetContVal('purchaseEftCard','Liccun');
+				temp= string.format("9F37%02x%s",string.len(UnpredictableNumber)/2,UnpredictableNumber);
+				iccdata = iccdata..temp;
+
+				
+
+				success,ApplicationTransactionCounter, errormessage=GetContVal('purchaseEftCard','LiccAtc');
+				temp= string.format("9F36%02x%s",string.len(ApplicationTransactionCounter)/2,ApplicationTransactionCounter);
+				iccdata = iccdata..temp;
+				
+				
+
+				success,TerminalVerificationResult,errormessage=GetContVal('purchaseEftCard','LiccTvr');
+				temp= string.format("95%02x%s",string.len(TerminalVerificationResult)/2,TerminalVerificationResult);
+				iccdata = iccdata..temp;
+				
+				
+				success,TransactionDate,errormessage=GetContVal('purchaseEftCard','LiccTransdate');
+				temp= string.format("9A%02x%s",string.len(TransactionDate)/2,TransactionDate);
+				iccdata = iccdata..temp;
+				
+				
+				
+				success,TransactionType,errormessage=GetContVal('purchaseEftCard','LiccTranstype');
+				temp= string.format("9C%02x%s",string.len(TransactionType)/2,TransactionType);
+				iccdata = iccdata..temp;
+				
+				
+				
+				success,AmountAuthorization,errormessage=GetContVal('purchaseEftCard','LiccAmtAuth');
+				temp= string.format("9F02%02x%s",string.len(AmountAuthorization)/2,AmountAuthorization);
+				iccdata = iccdata..temp;
+				
+				
+				
+				success,TransactionCurrencyCode,errormessage=GetContVal('purchaseEftCard','LiccTranscc');
+				TransactionCurrencyCode = '0'..TransactionCurrencyCode;
+				temp= string.format("5F2A%02x%s",string.len(TransactionCurrencyCode)/2,TransactionCurrencyCode);
+				iccdata = iccdata..temp;
+				
+				
+				
+				success, ApplicationInterchangeProfile,errormessage = GetContVal('purchaseEftCard','LiccAip');
+				temp= string.format("82%02x%s",string.len(ApplicationInterchangeProfile)/2,ApplicationInterchangeProfile);
+				iccdata = iccdata..temp;
+				
+				
+
+				success, TerminalCountryCode,errormessage = GetContVal('purchaseEftCard','LiccTermcc');
+				TerminalCountryCode = '0'..TerminalCountryCode;
+				temp= string.format("9F1A%02x%s",string.len(TerminalCountryCode)/2,TerminalCountryCode);
+				iccdata = iccdata..temp;
+
+				
+
+				success,CardAuthenticatorResultCode,errormessage = GetContVal('purchaseEftCard','LiccCvm');
+				temp= string.format("9F34%02x%s",string.len(CardAuthenticatorResultCode)/2,CardAuthenticatorResultCode);
+				iccdata = iccdata..temp;
+				
+				
+				
+				termCap = "E0F8C8";
+				temp= string.format("9F33%02x%s",string.len(termCap)/2,termCap);
+				iccdata = iccdata..temp;
+				
+				
+
+				
+				success, TerminalType,errormessage = GetContVal('purchaseEftCard','LiccTty');
+				temp= string.format("9F35%02x%s",string.len(TerminalType)/2,TerminalType);
+				iccdata = iccdata..temp;
+
+				
+
+				success, AmountOther,errormessage = GetContVal('purchaseEftCard','LiccAmtOther');
+				temp= string.format("9F03%02x%s",string.len(AmountOther)/2,AmountOther);
+				iccdata = iccdata..temp;	
+
+				
+				
+				SetContVal('f55','value',iccdata)
+				
+				
+				
+				JumpToCard('popTrans');
+				
+			</script>
+		</card>
+
+	
+		<card name="popTrans" type="script">
+			<script name="setsession">
+				success,pan, errormessage=GetContVal('purchaseEftCard','pan');	
+				success,track2, errormessage=GetContVal('purchaseEftCard','track2');	
+				
+				success,cardseq, errormessage=GetContVal('__cardseqnum','value');	
+				
+				isFind = string.find(track2,"D");	
+				
+				if isFind == null then
+					isFind = string.find(track2,"=");
+				end
+				
+				expdate = string.sub(track2,isFind+1,isFind+4);
+				src = string.sub(track2,isFind+5,isFind+7);
+				
+				
+				mti = '0200'
+				SetContVal('mti','value',mti)
+				SetContVal('f2','value',pan);
+				
+				
+				success, acct,errormessage = GetContVal('selacctype','value');
+				
+				proccode = '00';
+				if acct=='current' then
+					proccode = proccode..'20';
+				end
+				
+				if acct=='savings' then
+					proccode = proccode..'10';
+				end
+				
+				if acct=='default' then
+					proccode = proccode..'00';
+				end
+				
+				proccode = proccode..'00';
+				
+				SetContVal('f3','value',proccode);
+				success,amt, errormessage=GetContVal('amt','value');	
+				amt = 0+amt
+				theAmt = amt/100.00;
+				amt  = string.format("%012d",amt );
+				SetContVal('f4','value',amt)		
+				
+				
+				
+				SetContVal('f14','value',expdate)	
+				SetContVal('f25','value','00')
+				SetContVal('f26','value','06')
+				SetContVal('f28','value','C00000000')
+				SetContVal('f35','value',track2)
+				SetContVal('f40','value',src)
+			
+					
+				success,seqnum = GetSysVar('__stan');
+				Iseqnum = 0+seqnum;
+				prseqnum = string.format("%06d",Iseqnum);
+				SetContVal('f11','value',prseqnum);
+				
+				refNum =  string.format("%012d",Iseqnum);
+				SetContVal('f37','value',refNum)
+				
+				
+				Lseqnum =0;
+				Lseqnum = 1 + seqnum;
+				SetSysVar('__stan',''..Lseqnum)
+				
+				
+
+				success,Sec,Min,Hour,Day,Month,Year,weekday,yearday=GetTime();
+				TDateTime = string.format("%02d%02d%02d%02d%02d",Month,Day,Hour,Min,Sec);
+				TTime = string.format("%02d%02d%02d",Hour,Min,Sec);
+				TDate = string.format("%02d%02d",Month,Day);		
+				SetContVal('f7','value',TDateTime);
+				SetContVal('f12','value',TTime);
+				SetContVal('f13','value',TDate);
+					
+				
+				success,pinblock, errormessage=GetContVal('__pindata','value');
+				
+				success,pentrymode, errormessage=GetContVal('__posentrymode','value');	
+				success,posdatacode, errormessage=GetContVal('__posdatacode','value');	
+				
+				dbdata = {''..mti..':'..TDateTime..':'..track2..':'..proccode..':'..amt..':'..Iseqnum..':'..cardseq..':'..pentrymode..':'..posdatacode};
+				SetSysVar('__lasthstime',''..TDateTime);
+				GRowsCreateTbl('RevTable','dbdata');
+				
+				
+				success,cardno, errormessage=GetContVal('__l4dig','value');
+				success,sequenceId=CreateEOD("","","","","Fail","State",cardno,"Card",theAmt,"Amt","01","01","Purchase");
+				
+				
+				
+				
+				JumpToCard('CPost4');
+					
+					
+			
+			</script>
+		</card>
+	
+	
+		<card type="process" name="CPost4"  > 
+			<isosend  name="postPur4"  onpass='setProc5' onrecverror="C:reversal.kxml" onfail="Cdelrow">
+				  <procmsg>Sending transaction... Please wait</procmsg>           
+				  <failmsg>Transaction could not be processed. Please try again.</failmsg>
+				
+				  <iso num="0">mti</iso>
+				  <iso num="2">f2</iso>
+				  <iso num="3">f3</iso>
+				  <iso num="4">f4</iso>
+				  <iso num="7">f7</iso>
+				  <iso num="11">f11</iso>
+				  <iso num="12">f12</iso>
+				  <iso num="13">f13</iso>
+				  <iso num="14">f14</iso>
+				  <iso num="18">__mtype</iso>
+				  <iso num="22">__posentrymode</iso>
+				  <iso num="23">__cardseqnum</iso>
+				  <iso num="25">f25</iso>
+				  <iso num="26">f26</iso>
+				  <iso num="28">f28</iso>
+				  <iso num="35">f35</iso>
+				  <iso num="37">f37</iso>
+				  <iso num="40">f40</iso>
+				  <iso num="41">__tid</iso>
+				  <iso num="42">__mid</iso>
+				  <iso num="43">__merchantloc</iso>
+				  <iso num="49">__currcode</iso>
+				  <iso num="52">__pindata</iso>	
+				  <iso num="55">f55</iso>
+				  <iso num="123">__posdatacode</iso>
+			
+			</isosend>	
+		</card>
+
+	 	<card name="Cdelrow" type="script">
+			<script name="Sdelrow">
+				success,transtime = GetSysVar('__lasthstime');
+				
+				success,Size = GRowSize('RevTable');
+				
+				if Size ~= 0 then
+					GDeleteRow('RevTable',Size-1);	
+				end
+				
+				JumpToCard('CUpdateEOD');
+			</script>		
+		</card>
+		
+		<card type="process" name="CUpdateEOD">
+			<upeod name="eodSave" onpass="noresp" onfail="noresp">
+				<update slot="__iresp" >01</update>
+				<update slot="__fresp" >01</update>
+				<update slot="3" >#Fail.</update>
+			</upeod>
+		</card>	
+	
+		<card name="noresp" oncancel="__main" next="__main" >
+	
+			<label name="Lrem" width="120" height="30" xpos="5" ypos="15">No response</label>
+	
+		</card>
+	
+	
+		<card name="setProc5" type="script">
+			<script name="setsession1">
+				
+				success,Size = GRowSize('RevTable');
+				
+				if Size ~= 0 then
+					GDeleteRow('RevTable',Size-1);	
+				end
+				
+				success,theData, errormessage=GetContVal('postPur4','0');
+				
+				
+				success,theData, errormessage=GetContVal('postPur4','3');
+			
+				
+				success,theData, errormessage=GetContVal('postPur4','7');
+			
+				
+				success,theStan, errormessage=GetContVal('postPur4','11');
+				
+			    success,theAuthID, errormessage=GetContVal('postPur4','38');
+				
+				SetContVal('myStan','value',theStan)
+				SetContVal('myAuthID','value',theAuthID);
+				
+				success,resp, errormessage=GetContVal('postPur4','39');
+			    
+				
+				if resp == '00' then 
+					JumpToCard('CDisplayResultPass');
+					return;
+				end
+				
+				success,message = MessageIso(resp);	
+				
+				if success == true then
+					SetContVal('LRMsg','value', message);	
+					SessionAdd('LRMsg',LRMsg);
+				else
+					SetContVal('LRMsg','value', 'Error Proceesing transaction');
+					SessionAdd('LRMsg',LRMsg);
+				end
+			
+				JumpToCard('CDisplayResultFail');
+			</script>
+		</card>
+	  
+		<card name="CDisplayResultFail" oncancel="CPrintFReceipt" timeout="05" ontimeout="CPrintFReceipt" next="CPrintFReceipt">
+			<label name="LRMsg" xpos="1" ypos="1" width="120" height="60"/>		
+		</card>
+		
+		<card name="CPrintFReceipt" next="CUpEODFail" type="process">
+			<printprocess name="PrPrintRct2" pausefortear="true">
+			<procmsg>PRINTING RECEIPT</procmsg>
+			<failmsg>PRINTING FAILED</failmsg>
+					<receipt >
+					~fP1;~jL;~d"  "~~
+					~fP1;~jC;~d" "__merchantloc~~
+					~fP1;~jC;~d" "__address1~~
+					~fP1;~jC;~d" "__address2~~
+					~fP1;~jC;~d" "__phonenumber~~			
+					~fP1;~jC;~d".........................................."~~
+					~fP2;~jL;~d"TERMINAL ID:"__tid~~
+					~fP2;~jL;~d"DATE:"__date~~
+					~fP2;~jL;~d"TIME:"__time~~
+					~fP1;~jC;~d".........................................."~~
+					~fP1;~jL;~d"CARD TYPE:"%sapplab~~
+					~fP1;~jL;~d"NAME:"%cardHName~~
+					~fP1;~jC;~d"...............PURCHASE..................."~~
+					~fP3;~jL;~d" TRANSACTION FAILED "~~
+					~fP1;~jC;~d".........................................."~~
+					~fP1;~jL;~d"RESPONSE:"LRMsg~~
+					~fP1;~jL;~d"  "~~
+					~fP3;~jL;~d"       AMOUNT"~~
+					~fP1;~jL;~d""~~
+					~fP3;~jL;~d"       N"myAmt~~
+					~fP1;~jC;~d".........................................."~~
+					~fP3;~jL;~d"STAN:"myStan~~
+					~fP1;~jC;~d".........................................."~~
+					~fP3;~jL;~d"       CARDNO"~~
+					~fP3;~jL;~d""%themaskpan~~
+					~fP1;~jL;~d"------------------------------------------"~~
+					~fP1;~jL;~d"              THANK YOU"~~	
+					~fP1;~jL;~d"         POWERED BY INTERSWITCH"~~		
+					~fP1;~jL;~d"  "~~
+					~fP1;~jL;~d"  "~~
+					~fP1;~jL;~d"  "~~
+					~fP1;~jL;~d"  "~~
+					~fP1;~jL;~d"  "~~
+					~fP1;~jL;~d"  "~~
+					</receipt>		  
+			</printprocess>   
+		</card>	
+	  
+	
+		<card type="process" next="__main" name="CUpEODFail">
+			<upeod name="eodSave" >
+				<update slot="__iresp" >01</update>
+				<update slot="__fresp" >01</update>
+				<update slot="3" >#Fail.</update>
+			</upeod>	
+		</card>	
+	
+	
+		<card name="CDisplayResultPass" timeout="03" ontimeout="CPrintReceipt" showbattery="false" next="CPrintReceipt">
+			<label name="LCongrats" xpos="1" ypos="1" width="120" height="30">Your payment was succesfull</label>		
+			<label name="LMesage" xpos="1" ypos="41" width="120" height="30">Press Enter to print</label>
+		</card>
+	
+	
+		<card name="CPrintReceipt" next="CMerchantReceipt" type="process">
+			<printprocess name="PrPrintRct" pausefortear="true">
+			  <procmsg>PRINTING RECEIPTS</procmsg>
+			  <failmsg>PRINTING FAILED</failmsg>
+				  <receipt>
+					~fP1;~jL;~d"  "~~
+					~fP1;~jL;~d"  "~~	
+					~fP1;~jC;~d".............CUSTOMER COPY................"~~
+					~fP1;~jC;~d" "__merchantloc~~
+					~fP1;~jC;~d" "__address1~~
+					~fP1;~jC;~d" "__address2~~
+					~fP1;~jC;~d" "__phonenumber~~	
+					~fP1;~jC;~d".........................................."~~
+					~fP1;~jL;~d"TERMINAL ID:"__tid~~
+					~fP1;~jL;~d"DATE:"__date~~
+					~fP1;~jL;~d"TIME:"__time~~
+					~fP1;~jL;~d"CARD TYPE:"%sapplab~~
+					~fP1;~jL;~d"CARDHOLDER NAME:"%cardHName~~
+					~fP1;~jC;~d"...............PURCHASE..................."~~
+					~fP3;~jC;~d"      APPROVED                 "~~
+					~fP1;~jC;~d".........................................."~~
+					~fP3;~jL;~d"       AMOUNT"~~
+					~fP1;~jL;~d""~~
+					~fP3;~jL;~d"       N"myAmt~~
+					~fP1;~jC;~d".........................................."~~
+					~fP3;~jL;~d"STAN:"myStan~~
+					~fP3;~jL;~d"AuthID:"myAuthID~~
+					~fP1;~jC;~d".........................................."~~
+					~fP3;~jL;~d"       CARDNO"~~
+					~fP3;~jL;~d""%themaskpan~~
+					~fP1;~jC;~d".........................................."~~
+					~fP2;~jC;~d"PLEASE RETAIN RECEIPT"~~	
+					~fP2;~jC;~d"THANK YOU"~~	
+					~fP2;~jC;~d"POWERED BY INTERSWITCH"~~	
+					~fP1;~jC;~d".........................................."~~
+					~fP1;~jL;~d"  "~~
+					~fP1;~jL;~d"  "~~
+					~fP1;~jL;~d"  "~~
+				  </receipt>
+			  
+			</printprocess>    
+		
+		</card>
+	
+	
+		<card name="CMerchantReceipt" showbattery="false" next="CPrintReceipt2" timeout="06" ontimeout="CPrintReceipt2">
+			<label name="LMesage" xpos="1" ypos="30" width="120" height="10"> Press OK to Print  </label>
+			<label name="LMesage1" xpos="1" ypos="41" width="120" height="10">  Merchant Copy</label>
+		</card>
+	
+	
+		<card name="CPrintReceipt2" next="CUpEODPass" type="process">
+			<printprocess name="PrPrintRct" pausefortear="true">
+			  <procmsg>PRINTING RECEIPTS</procmsg>
+			  <failmsg>PRINTING FAILED</failmsg>
+		 
+				  <receipt>
+					~fP1;~jL;~d"  "~~
+					~fP1;~jL;~d"  "~~	
+					~fP1;~jC;~d"..............MERCHANT COPY..............."~~
+					~fP1;~jC;~d" "__merchantloc~~
+					~fP1;~jC;~d" "__address1~~
+					~fP1;~jC;~d" "__address2~~
+					~fP1;~jC;~d" "__phonenumber~~	
+					~fP1;~jC;~d".........................................."~~
+					~fP1;~jL;~d"TERMINAL ID:"__tid~~
+					~fP1;~jL;~d"DATE:"__date~~
+					~fP1;~jL;~d"TIME:"__time~~
+					~fP1;~jL;~d"CARD TYPE:"%sapplab~~
+					~fP1;~jL;~d"CARDHOLDER NAME:"%cardHName~~
+					~fP1;~jC;~d"...............PURCHASE..................."~~
+					~fP3;~jC;~d"      APPROVED                 "~~
+					~fP1;~jC;~d".........................................."~~
+					~fP3;~jL;~d"       AMOUNT"~~
+					~fP1;~jL;~d""~~
+					~fP3;~jL;~d"       N"myAmt~~
+					~fP1;~jC;~d".........................................."~~
+					~fP3;~jL;~d"STAN:"myStan~~
+					~fP3;~jL;~d"AuthID:"myAuthID~~
+					~fP1;~jC;~d".........................................."~~
+					~fP3;~jL;~d"       CARDNO"~~
+					~fP3;~jL;~d""%themaskpan~~
+					~fP1;~jC;~d".........................................."~~
+					~fP2;~jC;~d"PLEASE RETAIN RECEIPT"~~	
+					~fP2;~jC;~d"THANK YOU"~~	
+					~fP2;~jC;~d"POWERED BY INTERSWITCH"~~	
+					~fP1;~jC;~d".........................................."~~
+					~fP1;~jL;~d"  "~~
+					~fP1;~jL;~d"  "~~
+					~fP1;~jL;~d"  "~~
+				  </receipt>
+			  
+			</printprocess>    
+			
+		</card>
+	
+		<card type="process" next="__main"  name="CUpEODPass">
+			<upeod name="eodSave" >
+				<update slot="__iresp" >00</update>
+				<update slot="__fresp" >00</update>
+				<update slot="3" >#Pass.</update>
+			</upeod>
+		</card>	
+	
+	
+		<card name="bmain" oncancel="__main" next="PaymentCard" >
+
+			<var name="mti">0800</var>
+			<var name="f2"></var>
+			<var name="f3">9A0000</var>
+			<var name="f4"></var>
+			<var name="f7"></var>
+			<var name="f11"></var>
+			<var name="f12"></var>
+			<var name="f13"></var>
+			<var name="f14"></var>
+			<var name="f18"></var>
+			<var name="f22"></var>
+			<var name="f23"></var>
+			<var name="f25"></var>
+			<var name="f26"></var>
+			<var name="f28"></var>
+			<var name="f32"></var>
+			<var name="f35"></var>
+			<var name="f37"></var>	
+			<var name="f40"></var>	
+			<var name="f41"></var>
+			<var name="f49"></var>
+			<var name="f55"></var>
+			<var name="f62"></var>
+			<var name="f123"></var>
+				
+		</card>
+	
+
+</kxml>
