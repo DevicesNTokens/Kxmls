@@ -1,0 +1,189 @@
+<kxml>
+ <!--Check for Paper -->
+<card name="PrinterCheck" type="script">
+	<script name="SUpdate">
+			success,errormessage = GetPrinterState();
+			if(success == true) then
+				JumpToCard('CBill');
+			else
+				ShowMessage('','Please Insert Paper',4000);
+				JumpToCard('__main');
+			end
+		</script>		
+</card>
+
+<!--Select Biller Customer Number -->
+	<card name="CBill" nxtonhk="true" showtime="true" showbattery="true" oncancel="__main"> 
+	<menu name="mainMenu" width="90" xpos="20" ypos="1" >
+		<option hotkey="F1" value="C:gtbmoney.kxml">GTBMobile MONEY</option>	
+		<option hotkey="F2" value="C:dstv.kxml">DSTV</option>	
+		<option hotkey="F3" value="C:mtnp.kxml">MTN </option>	
+		<option hotkey="F4" value="MOREBILLS">MORE..</option>	
+	</menu> 
+	</card> 
+	
+	
+	<!--Select Biller Customer Number -->
+	<card name="MOREBILLS" nxtonhk="true" showtime="true" showbattery="true" oncancel="__main"> 
+	<menu name="mainMenu" width="100" xpos="10" ypos="1" >
+		<option hotkey="F1" value="C:lcc.kxml">LCC TOPUP</option>	
+		<option hotkey="F2" value="C:airtelp.kxml">AIRTEL</option>	
+		<option hotkey="F3" value="C:phcn.kxml">PHCN</option>	
+		<option hotkey="F4" value="MOREBILLS1">MORE.....</option>	
+	</menu> 
+	</card> 
+	
+	<card name="MOREBILLS1" nxtonhk="true" showtime="true" showbattery="true" oncancel="__main"> 
+	<menu name="mainMenu1" width="100" xpos="10" ypos="1" >
+		<option hotkey="F1" value="C:hitv.kxml">HITV</option>		
+		<option hotkey="F2" value="CBiller">OTHERS</option>	
+			
+	</menu> 
+	</card> 
+	
+<!--Request for Biller Number. Only requested for if type OTHERS -->     
+<card name="CBiller" oncancel="__main" next="CCustNo" >
+  		<label name="LConfirm" xpos="5" ypos="10" width="120" height="10">Enter Biller Code</label>
+     	<textbox name="billcode" type="Alpha" xpos="1" title="" ypos="25" width="120" height="10"></textbox>	
+</card>
+
+
+<card name="CCustNo" oncancel="__main" next="CPhone" >
+  		<label name="LConfirm" xpos="5" ypos="10" width="120" height="10">  ENTER CUSTOMER NO</label>
+     	<textbox name="custnum" type="Alpha" xpos="1" title="" ypos="25" width="120" height="10"></textbox>	
+</card>
+
+
+<card name="CPhone" oncancel="__main" next="CAmount" >
+  		<label name="LConfirm" xpos="5" ypos="10" width="120" height="10">    PHONE NUMBER</label>
+     	<textbox name="phonenum" type="Alpha" xpos="1" title="" ypos="25" width="120" height="10"></textbox>	
+</card>
+
+
+<card name="CAmount" oncancel="__main" next="PaymentCard" >
+	<textbox name="TAmt" type="amount" xpos="1" title="AMOUNT:" ypos="25" width="120" height="10">0.00</textbox>	
+	<var name="amt" />
+	<var name="eodamt" />
+	<var name="ver">2.0SE(20130620)</var>
+	<var name="hook">C:billHook.kxml</var>
+	<var name="hook2">C:slbill.kxml</var>
+</card>
+	
+	
+<card name="CClearVars" type="script">
+	<script name="SUpdate">
+		success,theAmt, errormessage=GetContVal('TAmt','value');	
+		success,billcode, errormessage=GetContVal('billcode','value');
+		success,custnum, errormessage=GetContVal('custnum','value');
+		success,selacctype, errormessage=GetContVal('selacctype','value');
+		if (theAmt == nil) then
+			theAmt=0;
+		end					
+		SetContVal('amt','value',theAmt*100);	
+		SessionAdd('theAmt', theAmt);
+		SessionAdd('billercode', billcode);			
+		SessionAdd('customerno', custnum);
+		SessionAdd('selacctype', selacctype);
+		SetContVal('eodamt','value',theAmt);			
+		SetContVal('TAmt','value','0.00');	
+	</script>
+</card>
+
+<card name="PaymentCard" type="process" oncancel="__main"  >
+		<eftcard name="purchaseEftCard" collectpin="true" paymode="magemv" amtvar="amt" accttype="selacctype" onfail="__main" onpass="CSelAccType" valdata="4" valmode="none" trxntype="00">
+			<procmsg>PLEASE INSERT CARD</procmsg>
+		</eftcard>	
+		
+	</card>
+
+  <!--Select Account Type -->
+  <card name="CSelAccType" showbattery="false" oncancel="__main" onexit="CClearVars" next="CCHVerify">
+    <selectbox name="selacctype" width="100" xpos="10" ypos="1"  causenext="true" >
+      <option hotkey="F1" value="current">CURRENT</option>
+      <option hotkey="F2" value="savings">SAVINGS</option>
+      <option hotkey="F3" value="credit">CREDIT</option>
+      <option hotkey="F4" value="default">DEFAULT</option>
+    </selectbox>
+  </card>
+  
+   
+ 
+<card name="CCHVerify" type="process" onexit="SData" oncancel="__main" >
+	<cardholderverification name="CHVerify" eftcard="purchaseEftCard" onpass="CPost" onfail="__main" />
+</card>
+  
+<card name="SData" type="script">
+	<script name="SDataS">
+			success, pan, errormessage=GetContVal('purchaseEftCard', 'pan');
+			SessionAdd('pan',pan);
+			if string.len(pan) > 10 then
+				first6 = string.sub(pan, 0,6);
+				last4 = string.sub(pan, -4);
+				mymask = first6.."*******"..last4;
+				SessionAdd('themaskpan',mymask);
+			end
+		success, value, errormessage=GetContVal('purchaseEftCard', 'iccdata');
+		SessionAdd('lasticc', value);
+		success, value, errormessage=GetContVal('purchaseEftCard', 'pindata');
+		SessionAdd('pindata', value);
+		success, value, errormessage=GetContVal('purchaseEftCard', 'cardHName');
+		value = string.gsub(value, "/", " ");
+		SessionAdd('cardHName', value);
+		success, value, errormessage=GetContVal('__applab', 'value');
+		SessionAdd('sapplab', value);
+		
+		
+		</script>
+</card>
+  
+<card type="process" name="CPost" next="CUpdateEOD" > 
+    <post app="billpayment" name="postPur" eodname="Bills" onfail="ErrorMsg"  usessl="true" server="41.223.145.174" port="443" log="false">
+	      <procmsg>Sending transaction... Please wait</procmsg>           
+	      <failmsg>Transaction could not be processed. Please try again.</failmsg>
+	      <logeod>
+			<log  slot="1" name="#Amt">eodamt</log>
+			<log  slot="2" name="#Card No">__l4dig</log>
+			<log  slot="3" name="#State">#Pend.</log>
+			
+	      </logeod>	      
+		  <var>amt</var>
+		  <var>hook</var>
+		  <var>hook2</var>
+		  <var>selacctype</var>
+		  <var>__track2</var>  
+		  <var>__pindata</var>
+		  <var>__ksn</var>
+		  <var>__ksnd</var>
+		  <var>__chvm</var>
+		  <var>purchaseEftCard</var>
+		  <var>__posdatacode</var> 
+		  <var>__posentrymode</var>
+		  <var>__cardseqnum</var>
+		  <var>__keysetid</var>
+			<group>
+		  	            <group name="billinfo">
+							<var>billcode</var>
+							<var>custnum</var>
+							<var>phonenum</var>
+							<var>%cardHName</var>
+							<var>ver</var>
+		  		    </group>
+            </group>
+	    </post>	
+	</card>
+
+	<card   name="ErrorMsg" timeout="8" ontimeout="CUpdateEOD" next="CUpdateEOD" oncancel="__main" onfail="CUpdateEOD">
+		<label name="LErrorMsg" xpos="1" ypos="25" width="120" height="10">Incomplete response</label>
+	</card>
+
+	
+	<card type="process" name="CUpdateEOD">
+		<upeod name="eodSave" onpass="__main" onfail="__main">
+			<update slot="__iresp" >01</update>
+			<update slot="__fresp" >01</update>
+			<update slot="3" >#Fail.</update>
+		</upeod>
+	</card>	 
+
+	
+</kxml>
